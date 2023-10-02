@@ -47,7 +47,7 @@
         v-model="note"
         id="message"
         rows="18"
-        class="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+        class="texarea-wrapper border-transparent"
         placeholder="Response"
         user-scalable="no"
       ></textarea>
@@ -547,5 +547,21 @@ const clearNote = () => {
 
 .pending-requests li {
   padding: 5px 0;
+}
+.texarea-wrapper {
+  color: white;
+  background: transparent;
+  resize: none;
+  width: 90%;
+  outline: none;
+  border: none;
+  overflow: auto;
+  outline: none;
+  -webkit-box-shadow: none;
+  -moz-box-shadow: none;
+  box-shadow: none;
+}
+.texarea-wrapper:focus {
+    border: none !important;
 }
 </style>
