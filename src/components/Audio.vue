@@ -44,7 +44,7 @@
 
     <div class="my-12">
       <textarea
-        v-model="note"
+        v-model="tabs[selectedTab].note"
         id="message"
         rows="18"
         class="texarea-wrapper border-transparent"
@@ -77,7 +77,7 @@
       </div>
     </div>
   </div>
-
+<!-- menu \ -->
   <div
     class="fixed bottom-0 z-50 w-full -translate-x-1/2 bg-white border-t border-gray-200 left-1/2 dark:bg-gray-700 dark:border-gray-600"
   >
@@ -122,7 +122,6 @@
         <span class="sr-only">Records</span>
       </button>
       <button
-        data-tooltip-target="tooltip-wallet"
         type="button"
         @click="toggleModal"
         class="inline-flex flex-col items-center justify-center px-5 group"
@@ -152,7 +151,6 @@
         <div class="tooltip-arrow" data-popper-arrow></div>
       </div>
       <button
-        data-tooltip-target="tooltip-new"
         type="button"
         @click="() => (recording ? stopRecord() : startRecord())"
         class="rounded-full inline-flex flex-col items-center justify-center p-4 group"
@@ -253,7 +251,6 @@ const url = ref(null);
 const mediaRecorder = ref(null);
 const audioChunks = ref([]);
 const response = ref("");
-const note = ref("");
 const sending = ref(false);
 const lastNote = ref("");
 const audioLevels = ref(Array(10).fill(0));
@@ -271,19 +268,26 @@ const selectTab = (tab) => {
   selectedTab.value = tab;
 };
 
-watch(note, (newNote) => {
-  localStorage.setItem("savedNote", newNote);
-});
+watch(
+  () => tabs,
+  (newValue) => {
+    newValue.value.forEach((tab) => {
+    localStorage.setItem("savedNote" + tab.name, tab.note);
+  });
+}, { deep: true }
+);
 
 onMounted(async () => {
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get("record") === "true") {
     startRecord();
   }
-  const savedNote = localStorage.getItem("savedNote");
-  if (savedNote) {
-    note.value = savedNote;
-  }
+  tabs.value.forEach((tab) => {
+    const savedNote = localStorage.getItem("savedNote" + tab.name);
+    if (savedNote) {
+      tab.note = savedNote;
+    }
+  });
   await initDB();
   const request = indexedDB.open("recordingsDB");
   request.onsuccess = (event) => {
@@ -397,13 +401,13 @@ const initDB = async () => {
 };
 
 const sendToWebhook = async () => {
-  if (!note.value || sending.value) return;
+  if (!tabs.value[selectedTab.value].note || sending.value) return;
   sending.value = true;
 
   try {
     const webhookAddress =
       "https://hook.eu1.make.com/fsiqaia58kx69dlucon8eg8smu1pf10x";
-    const data = { text: note.value };
+    const data = { text: tabs.value[selectedTab.value].note };
     const response = await fetch(webhookAddress, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -413,7 +417,7 @@ const sendToWebhook = async () => {
     if (!response.ok) {
       throw new Error(`HTTP Error: ${response.status}`);
     }
-    note.value = "";
+    tabs.value[selectedTab.value].note = "";
   } catch (error) {
     alert(error);
     console.error("An error occurred:", error);
@@ -438,7 +442,8 @@ const sendToWhisper = async (recording) => {
       if (index > -1) {
         pendingRequests.value.splice(index, 1);
       }
-      note.value += `\n${data}`;
+      tabs.value[selectedTab.value].note += `\n${data}`;
+      localStorage.setItem("savedNote" + tabs.value[selectedTab.value].name, tabs.value[selectedTab.value].note);
       lastNote.value = data;
       navigator.clipboard.writeText(lastNote.value);
       response.value = data.includes("Amara") ? "" : data;
@@ -449,11 +454,11 @@ const sendToWhisper = async (recording) => {
 };
 
 const undo = () => {
-  note.value = note.value.replace(lastNote.value, "");
+  tabs.value[selectedTab.value].note = tabs.value[selectedTab.value].note.replace(lastNote.value, "");
 };
 
 const copy = () => {
-  navigator.clipboard.writeText(note.value);
+  navigator.clipboard.writeText(tabs.value[selectedTab.value].note);
 };
 
 const toggleModal = () => {
@@ -461,8 +466,8 @@ const toggleModal = () => {
 };
 
 const clearNote = () => {
-  note.value = "";
-  localStorage.removeItem("savedNote");
+  tabs.value[selectedTab.value].note = "";
+  localStorage.removeItem("savedNote" + tabs.value[selectedTab.value].name);
 };
 </script>
 
