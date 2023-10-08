@@ -1,5 +1,22 @@
 <template>
   <!-- Loading animation container -->
+  <div
+    id="drawer-bottom-example"
+    class="fixed flex justify-center bottom-0 left-0 right-0 z-40 w-full h-1/4 p-4 overflow-y-auto transition-transform bg-white dark:bg-gray-800 transform-none"
+    v-if="recording"
+    style="z-index: 999"
+    tabindex="-1"
+  >
+    <AVMedia
+      canv-height="200"
+      canv-width="200"
+      @click="stopRecord"
+      :media="stream"
+      type="circle"
+      line-color="blue"
+    />
+  </div>
+  <FloatingButton @clickElement="clickButtonInMenu"/>
   <div class="loading-spinner" v-if="sending">
     <div class="spinner"></div>
   </div>
@@ -77,7 +94,7 @@
       </div>
     </div>
   </div>
-<!-- menu \ -->
+  <!-- menu \ -->
   <div
     class="fixed bottom-0 z-50 w-full -translate-x-1/2 bg-white border-t border-gray-200 left-1/2 dark:bg-gray-700 dark:border-gray-600"
   >
@@ -246,6 +263,10 @@
 
 <script setup>
 import { ref, watch, onMounted } from "vue";
+// import AVMedia from '@/components/AVMedia.vue'
+import { AVMedia } from "vue-audio-visual";
+import FloatingButton from "@/components/FloatingButton.vue";
+
 const recording = ref(false);
 const url = ref(null);
 const mediaRecorder = ref(null);
@@ -272,9 +293,10 @@ watch(
   () => tabs,
   (newValue) => {
     newValue.value.forEach((tab) => {
-    localStorage.setItem("savedNote" + tab.name, tab.note);
-  });
-}, { deep: true }
+      localStorage.setItem("savedNote" + tab.name, tab.note);
+    });
+  },
+  { deep: true }
 );
 
 onMounted(async () => {
@@ -308,14 +330,15 @@ onMounted(async () => {
       (tx.oncomplete = () => db.close());
   };
 });
-
+const stream = ref(null);
 const startRecord = async () => {
-  navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+  navigator.mediaDevices.getUserMedia({ audio: true }).then((workingStream) => {
+    stream.value = workingStream;
     recording.value = true;
 
     const audioContext = new AudioContext();
     const analyser = audioContext.createAnalyser();
-    const source = audioContext.createMediaStreamSource(stream);
+    const source = audioContext.createMediaStreamSource(workingStream);
     source.connect(analyser);
     analyser.fftSize = 32;
 
@@ -334,7 +357,7 @@ const startRecord = async () => {
 
     updateAudioLevels();
 
-    mediaRecorder.value = new MediaRecorder(stream);
+    mediaRecorder.value = new MediaRecorder(workingStream);
     mediaRecorder.value.start(1000);
     mediaRecorder.value.ondataavailable = (event) => {
       audioChunks.value.push(event.data);
@@ -425,6 +448,9 @@ const sendToWebhook = async () => {
     sending.value = false;
   }
 };
+const clickButtonInMenu = (name) => {
+  console.log(name);
+}
 
 const sendToWhisper = async (recording) => {
   if (!recording.blob) return;
@@ -443,7 +469,10 @@ const sendToWhisper = async (recording) => {
         pendingRequests.value.splice(index, 1);
       }
       tabs.value[selectedTab.value].note += `\n${data}`;
-      localStorage.setItem("savedNote" + tabs.value[selectedTab.value].name, tabs.value[selectedTab.value].note);
+      localStorage.setItem(
+        "savedNote" + tabs.value[selectedTab.value].name,
+        tabs.value[selectedTab.value].note
+      );
       lastNote.value = data;
       navigator.clipboard.writeText(lastNote.value);
       response.value = data.includes("Amara") ? "" : data;
@@ -454,7 +483,9 @@ const sendToWhisper = async (recording) => {
 };
 
 const undo = () => {
-  tabs.value[selectedTab.value].note = tabs.value[selectedTab.value].note.replace(lastNote.value, "");
+  tabs.value[selectedTab.value].note = tabs.value[
+    selectedTab.value
+  ].note.replace(lastNote.value, "");
 };
 
 const copy = () => {
@@ -567,6 +598,6 @@ const clearNote = () => {
   box-shadow: none;
 }
 .texarea-wrapper:focus {
-    border: none !important;
+  border: none !important;
 }
 </style>
