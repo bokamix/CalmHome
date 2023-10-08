@@ -2,21 +2,21 @@
   <!-- Loading animation container -->
   <div
     id="drawer-bottom-example"
-    class="fixed flex justify-center bottom-0 left-0 right-0 z-40 w-full h-1/4 p-4 overflow-y-auto transition-transform bg-white dark:bg-gray-800 transform-none"
+    class="fixed flex justify-center bottom-0 left-0 right-0 z-40 w-full h-2/4 p-4 overflow-y-auto transition-transform bg-white dark:bg-gray-800 transform-none"
     v-if="recording"
     style="z-index: 999"
     tabindex="-1"
   >
     <AVMedia
-      canv-height="200"
-      canv-width="200"
+      :canv-height="200"
+      :canv-width="200"
       @click="stopRecord"
       :media="stream"
       type="circle"
       line-color="blue"
     />
   </div>
-  <FloatingButton @clickElement="clickButtonInMenu"/>
+  <FloatingButton v-if="!recording" @clickElement="clickButtonInMenu"/>
   <div class="loading-spinner" v-if="sending">
     <div class="spinner"></div>
   </div>

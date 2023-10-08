@@ -1,6 +1,5 @@
 <template>
   <div
-    data-dial-init
     class="fixed right-6 bottom-28 group"
     style="z-index: 999"
   >
@@ -26,7 +25,6 @@
     <button
       type="button"
       @click="showActions = !showActions"
-      aria-expanded="false"
       class="flex items-center justify-center text-white bg-blue-700 rounded-full w-14 h-14 hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 focus:outline-none dark:focus:ring-blue-800"
     >
       <svg
