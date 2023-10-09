@@ -82,6 +82,12 @@ const menuItems = [
     label: "webhook",
     tooltip: "webhook",
   },
+  {
+    id: "date",
+    icon: icon,
+    label: "date",
+    tooltip: "date",
+  },
 ];
 const clickButton = (element) => {
   emit("clickElement", element);

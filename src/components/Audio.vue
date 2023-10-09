@@ -419,9 +419,38 @@ const sendToWebhook = async () => {
     sending.value = false;
   }
 };
-const clickButtonInMenu = (name) => {
+const clickButtonInMenu = async (name) => {
   if (name === "webhook") {
     sendToWebhook();
+  }
+  if (name === "date") {
+    // https://hook.eu1.make.com/phz63weziqykuunqda3hglp19c7fnu5i
+    sending.value = true;
+    // add try catch
+
+    // const data = { text: tabs.value[selectedTab.value].note };
+    // fetch("https://hook.eu1.make.com/phz63weziqykuunqda3hglp19c7fnu5i", {
+    //   method: "POST",
+    //   headers: { "Content-Type": "application/json" },
+    //   body: JSON.stringify(data),
+    // });
+    try {
+      const webhookAddress =
+        "https://hook.eu1.make.com/phz63weziqykuunqda3hglp19c7fnu5i";
+      const data = { text: tabs.value[selectedTab.value].note };
+      await fetch(webhookAddress, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+
+      tabs.value[selectedTab.value].note = "";
+    } catch (error) {
+      alert(error);
+      console.error("An error occurred:", error);
+    } finally {
+      sending.value = false;
+    }
   }
 };
 
