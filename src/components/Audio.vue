@@ -1,5 +1,94 @@
 <template>
   <!-- Loading animation container -->
+  <div v-if="calendarElements.length">
+    <!-- list of tasks -->
+    <ul class="max-w-md divide-y divide-gray-200 dark:divide-gray-700">
+      <li
+        class="pb-3 sm:pb-4 py-2"
+        v-for="(element, index) in calendarElements"
+        :key="index"
+      >
+        <div class="flex items-center space-x-4">
+          <div class="flex-shrink-0">
+            <button
+              @click="archive(element)"
+              type="button"
+              class="text-red-700 border border-red-700 hover:bg-red-700 hover:text-white focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm p-2.5 text-center inline-flex items-center mr-2 dark:border-red-500 dark:text-red-500 dark:hover:text-white dark:focus:ring-red-800 dark:hover:bg-red-500"
+            >
+              <svg
+                class="w-6 h-6 text-gray-800 dark:text-white"
+                aria-hidden="true"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="currentColor"
+                viewBox="0 0 18 15"
+              >
+                <path
+                  d="M1 13a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6H1v7Zm5.293-3.707a1 1 0 0 1 1.414 0L8 9.586V8a1 1 0 0 1 2 0v1.586l.293-.293a1 1 0 0 1 1.414 1.414l-2 2a1 1 0 0 1-1.416 0l-2-2a1 1 0 0 1 .002-1.414ZM17 0H1a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V1a1 1 0 0 0-1-1Z"
+                />
+              </svg>
+            </button>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-medium text-gray-900 dark:text-white">
+              {{ element.note }}
+            </p>
+          </div>
+          <div class="absolute inline-flex items-center justify-center text-xs font-bold  rounded-full -bottom-2 -right-2 text-blue-800 bg-blue-100 rounded dark:bg-blue-900 dark:text-blue-300 px-2 py-1">Pn. 12.03 13:30 (3d)</div>
+        </div>
+      </li>
+    </ul>
+  </div>
+  <div class="mt-10" v-if="tabs[selectedTab].archive && tabs[selectedTab].archive.length">
+    <ul class="max-w-md divide-y divide-gray-200 dark:divide-gray-700">
+      <li
+        class="pb-3 sm:pb-4"
+        v-for="(element, index) in tabs[selectedTab].archive"
+        :key="index"
+      >
+        <div class="flex items-center space-x-4">
+          <div class="flex-shrink-0">
+            <button
+              @click="unarchive(element)"
+              type="button"
+              class="text-green-700 border border-green-700 hover:bg-green-700 hover:text-white focus:ring-4 focus:outline-none focus:ring-green-300 font-medium rounded-lg text-sm p-2.5 text-center inline-flex items-center mr-2 dark:border-green-500 dark:text-green-500 dark:hover:text-white dark:focus:ring-green-800 dark:hover:bg-green-500"
+            >
+              <svg
+                class="w-6 h-6 text-gray-800 dark:text-white"
+                aria-hidden="true"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 18 18"
+              >
+                <path
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M7 11h4m-2 2V9M2 5h14a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Zm5.443-4H2a1 1 0 0 0-1 1v3h9.943l-2.7-3.6a1 1 0 0 0-.8-.4Z"
+                />
+              </svg>
+            </button>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="line-through dark:text-gray-400 text-sm font-medium">
+              {{ element }}
+            </p>
+          </div>
+        </div>
+      </li>
+    </ul>
+  </div>
+  <!-- recording drawers -->
+  <div
+    id="drawer-top-example"
+    class="fixed flex justify-center top-0 left-0 right-0 z-40 w-full h-1/4 p-4 overflow-y-auto transition-transform bg-red dark:bg-red-800 transform-none"
+    v-if="recording"
+    style="z-index: 999"
+    @click="stopRecordingWithoutSave"
+    tabindex="-1"
+  >
+   STOP!
+  </div>
   <div
     id="drawer-bottom-example"
     class="fixed flex justify-center bottom-0 left-0 right-0 z-40 w-full h-2/4 p-4 overflow-y-auto transition-transform bg-white dark:bg-gray-800 transform-none"
@@ -16,7 +105,12 @@
       line-color="blue"
     />
   </div>
-  <FloatingButton :loading="sending" v-if="!recording" @clickElement="clickButtonInMenu" />
+  <!-- end recording drawers -->
+  <FloatingButton
+    :loading="sending"
+    v-if="!recording"
+    @clickElement="clickButtonInMenu"
+  />
   <div class="loading-spinner" v-if="sending">
     <div class="spinner"></div>
   </div>
@@ -30,7 +124,7 @@
   </div>
 
   <div class="container">
-    <div class="my-12">
+    <div class="my-12" v-if="!tabs[selectedTab].archive">
       <textarea
         v-model="tabs[selectedTab].note"
         id="message"
@@ -233,7 +327,7 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from "vue";
+import { ref, watch, onMounted, computed } from "vue";
 // import AVMedia from '@/components/AVMedia.vue'
 import { AVMedia } from "vue-audio-visual";
 import FloatingButton from "@/components/FloatingButton.vue";
@@ -252,7 +346,7 @@ const indexAudio = ref(0);
 const pendingRequests = ref([]);
 const tabs = ref([
   { name: "main", note: "" },
-  { name: "tasks", note: "" },
+  { name: "tasks", note: "", archive: [] },
   { name: "calendar", note: "" },
 ]);
 const selectedTab = ref(0);
@@ -265,10 +359,42 @@ watch(
   (newValue) => {
     newValue.value.forEach((tab) => {
       localStorage.setItem("savedNote" + tab.name, tab.note);
+      if (tab.archive) {
+        //tab archive is array
+        const archiveToJson = JSON.stringify(tab.archive);
+        localStorage.setItem("savedArchive" + tab.name, archiveToJson);
+      }
     });
   },
   { deep: true }
 );
+const calendarElements = computed(() => {
+  if (tabs.value[selectedTab.value].name === "tasks") {
+    return tabs.value[selectedTab.value].note
+      .split("\n")
+      .map((note) => ({
+        note,
+      }))
+      .filter((element) => element.note);
+  }
+  return [];
+});
+const archive = (element) => {
+  const index = tabs.value[selectedTab.value].note.indexOf(element.note);
+  if (index > -1) {
+    tabs.value[selectedTab.value].archive.push(element.note);
+    tabs.value[selectedTab.value].note = tabs.value[
+      selectedTab.value
+    ].note.replace(element.note, "");
+  }
+};
+const unarchive = (element) => {
+  const index = tabs.value[selectedTab.value].archive.indexOf(element);
+  if (index > -1) {
+    tabs.value[selectedTab.value].note += `\n${element}`;
+    tabs.value[selectedTab.value].archive.splice(index, 1);
+  }
+};
 
 onMounted(async () => {
   const urlParams = new URLSearchParams(window.location.search);
@@ -277,6 +403,14 @@ onMounted(async () => {
   }
   tabs.value.forEach((tab) => {
     const savedNote = localStorage.getItem("savedNote" + tab.name);
+    if (tab.archive) {
+      const savedArchive = localStorage.getItem("savedArchive" + tab.name);
+      console.log(savedArchive);
+      if (savedArchive) {
+        tab.archive = JSON.parse(savedArchive);
+        console.log(tab.archive);
+      }
+    }
     if (savedNote) {
       tab.note = savedNote;
     }
@@ -499,8 +633,18 @@ const toggleModal = () => {
 };
 
 const clearNote = () => {
+  if (tabs.value[selectedTab.value].archive) {
+    tabs.value[selectedTab.value].archive = [];
+    return;
+  }
   tabs.value[selectedTab.value].note = "";
   localStorage.removeItem("savedNote" + tabs.value[selectedTab.value].name);
+};
+const stopRecordingWithoutSave = () => {
+  if (!recording.value) return;
+  recording.value = false;
+  mediaRecorder.value.stop();
+  mediaRecorder.value.stream.getTracks().forEach((track) => track.stop());
 };
 </script>
 
