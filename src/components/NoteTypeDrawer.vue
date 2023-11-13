@@ -6,7 +6,7 @@
   >
     <button
       @click="selectType(option)"
-      v-for="option in options"
+      v-for="option in allOptions"
       :key="option.name"
       type="button"
       class="text-blue-700 hover:text-white border border-blue-700 font-medium rounded-lg text-sm px-10 py-10 text-center me-2 mb-2 dark:border-blue-500 dark:text-blue-500 dark:hover:text-white"
@@ -18,7 +18,7 @@
 </template>
 
 <script setup>
-import { defineProps, defineEmits, ref } from "vue";
+import { defineProps, defineEmits, ref, computed } from "vue";
 
 const props = defineProps({
   show: Boolean,
@@ -27,6 +27,12 @@ const props = defineProps({
 
 // emit
 const selectedType = ref(props.options[0]);
+const customEvents = ref([
+  { name: "webhook", type: 'event' },
+  { name: "date", type: 'event' },
+  { name: "clipboard", type: 'event' },
+]);
+const allOptions = computed(() => [...customEvents.value, ...props.options]);
 const emits = defineEmits(["onClose, onSelectType"]);
 const emitClose = () => {
   emits("onClose");
@@ -34,6 +40,7 @@ const emitClose = () => {
 const selectType = (type) => {
   console.log('asdsad', type);
   selectedType.value = type;
+
   emits("onSelectType", type);
 };
 </script>

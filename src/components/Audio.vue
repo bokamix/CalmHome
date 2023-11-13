@@ -1,5 +1,17 @@
 <template>
-  <!-- Loading animation container -->
+  <div
+    v-if="copyModal"
+    id="drawer-bottom-example"
+    class="fixed top-0 left-0 right-0 drawer-999 w-full p-4 overflow-y-auto transition-transform bg-white dark:bg-gray-800 transform-none flex flex-col justify-center"
+  >
+    <button
+      @click="copyNote(option)"
+      type="button"
+      class="text-blue-700 hover:text-white border border-blue-700 font-medium rounded-lg text-sm px-10 py-10 text-center me-2 mb-2 dark:border-blue-500 dark:text-blue-500 dark:hover:text-white"
+    >
+      copy
+    </button>
+  </div>
   <div v-if="tabs[selectedTab].name === 'calendar'">
     <calendar-items :calendarElements="calendarElements" />
   </div>
@@ -40,7 +52,10 @@
       </li>
     </ul>
   </div>
-  <div class="mt-10" v-if="tabs[selectedTab].archive && tabs[selectedTab].archive.length">
+  <div
+    class="mt-10"
+    v-if="tabs[selectedTab].archive && tabs[selectedTab].archive.length"
+  >
     <ul class="max-w-md divide-y divide-gray-200 dark:divide-gray-700">
       <li
         class="pb-3 sm:pb-4"
@@ -89,7 +104,7 @@
     @click="stopRecordingWithoutSave"
     tabindex="-1"
   >
-   STOP!
+    STOP!
   </div>
   <div
     id="drawer-bottom-example"
@@ -132,7 +147,15 @@
   />
 
   <div class="container">
-    <div class="my-12" v-if="!(tabs[selectedTab].name === 'calendar' || tabs[selectedTab].name === 'tasks')">
+    <div
+      class="my-12"
+      v-if="
+        !(
+          tabs[selectedTab].name === 'calendar' ||
+          tabs[selectedTab].name === 'tasks'
+        )
+      "
+    >
       <textarea
         v-model="tabs[selectedTab].note"
         id="message"
@@ -610,20 +633,77 @@ const clickButtonInMenu = async (name) => {
     }
   }
 };
+const copyModal = ref(false);
+const copyNote = () => {
+  navigator.clipboard.writeText(lastNote.value);
+  copyModal.value = false;
+};
 const showTypeModal = ref(false);
 const selectedType = ref("");
 const showModalToChooseType = () => {
   showTypeModal.value = true;
 };
 const selectType = (type) => {
+  selectedType.value = type;
+  if (selectedType.value.type === "event") return;
   const tabIndex = tabs.value.findIndex((tab) => tab.name === type.name);
   selectTab(tabIndex);
-  selectedType.value = type;
 };
 
 // dodać pokazanie modala po rozpoznaniu notatki, obsłyga czasu i czyszczenia zaznaczonej kategorii
 // ogarnięcie logiki, zaznaczonej kategorii.
 
+const sendToNotion = async (note) => {
+  if (!note?.length) return;
+  sending.value = true;
+
+  try {
+    const webhookAddress =
+      "https://hook.eu1.make.com/fsiqaia58kx69dlucon8eg8smu1pf10x";
+    const data = { text: note };
+    const response = await fetch(webhookAddress, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP Error: ${response.status}`);
+    }
+  } catch (error) {
+    alert(error);
+    console.error("An error occurred:", error);
+  } finally {
+    sending.value = false;
+  }
+};
+
+const eventsActions = async (name, note) => {
+  if (name === "webhook") {
+    sendToNotion(note);
+  }
+  if (name === "date") {
+    sending.value = true;
+    try {
+      const webhookAddress =
+        "https://hook.eu1.make.com/phz63weziqykuunqda3hglp19c7fnu5i";
+      const data = { text: note };
+      await fetch(webhookAddress, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+    } catch (error) {
+      alert(error);
+      console.error("An error occurred:", error);
+    } finally {
+      sending.value = false;
+    }
+  }
+  if (name === "clipboard") {
+    copyModal.value = true;
+  }
+};
 const sendToWhisper = async (recording) => {
   if (!recording.blob) return;
   pendingRequests.value.push(recording.name);
@@ -637,17 +717,24 @@ const sendToWhisper = async (recording) => {
     .then((response) => response.text())
     .then(async (data) => {
       showModalToChooseType();
-      await new Promise(resolve => setTimeout(resolve, 5000));
+      await new Promise((resolve) => setTimeout(resolve, 5000));
       showTypeModal.value = false;
       const index = pendingRequests.value.indexOf(recording.name);
+      const addToBoard = () => {
+        tabs.value[selectedTab.value].note += `\n${data}`;
+        localStorage.setItem(
+          "savedNote" + tabs.value[selectedTab.value].name,
+          tabs.value[selectedTab.value].note
+        );
+      };
       if (index > -1) {
         pendingRequests.value.splice(index, 1);
       }
-      tabs.value[selectedTab.value].note += `\n${data}`;
-      localStorage.setItem(
-        "savedNote" + tabs.value[selectedTab.value].name,
-        tabs.value[selectedTab.value].note
-      );
+      if (selectedType.value.type === "event") {
+        eventsActions(selectedType.value.name, data);
+      } else {
+        addToBoard();
+      }
       lastNote.value = data;
       navigator.clipboard.writeText(lastNote.value);
       response.value = data.includes("Amara") ? "" : data;
@@ -786,5 +873,8 @@ const stopRecordingWithoutSave = () => {
 }
 .texarea-wrapper:focus {
   border: none !important;
+}
+.drawer-999 {
+  z-index: 999;
 }
 </style>
