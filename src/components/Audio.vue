@@ -1,11 +1,14 @@
 <template>
   <!-- Loading animation container -->
-  <div v-if="calendarElements.length">
+  <div v-if="tabs[selectedTab].name === 'calendar'">
+    <calendar-items :calendarElements="calendarElements" />
+  </div>
+  <div v-if="tasksElements.length">
     <!-- list of tasks -->
     <ul class="max-w-md divide-y divide-gray-200 dark:divide-gray-700">
       <li
         class="pb-3 sm:pb-4 py-2"
-        v-for="(element, index) in calendarElements"
+        v-for="(element, index) in tasksElements"
         :key="index"
       >
         <div class="flex items-center space-x-4">
@@ -33,7 +36,6 @@
               {{ element.note }}
             </p>
           </div>
-          <div class="absolute inline-flex items-center justify-center text-xs font-bold  rounded-full -bottom-2 -right-2 text-blue-800 bg-blue-100 rounded dark:bg-blue-900 dark:text-blue-300 px-2 py-1">Pn. 12.03 13:30 (3d)</div>
         </div>
       </li>
     </ul>
@@ -122,9 +124,15 @@
       </li>
     </ul>
   </div>
+  <NoteTypeDrawer
+    :show="showTypeModal"
+    @onClose="showTypeModal = false"
+    @onSelectType="selectType"
+    :options="tabs"
+  />
 
   <div class="container">
-    <div class="my-12" v-if="!tabs[selectedTab].archive">
+    <div class="my-12" v-if="!(tabs[selectedTab].name === 'calendar' || tabs[selectedTab].name === 'tasks')">
       <textarea
         v-model="tabs[selectedTab].note"
         id="message"
@@ -328,9 +336,12 @@
 
 <script setup>
 import { ref, watch, onMounted, computed } from "vue";
+
 // import AVMedia from '@/components/AVMedia.vue'
 import { AVMedia } from "vue-audio-visual";
 import FloatingButton from "@/components/FloatingButton.vue";
+import CalendarItems from "@/components/CalendarItems.vue";
+import NoteTypeDrawer from "@/components/NoteTypeDrawer.vue";
 
 const recording = ref(false);
 const url = ref(null);
@@ -369,6 +380,18 @@ watch(
   { deep: true }
 );
 const calendarElements = computed(() => {
+  if (tabs.value[selectedTab.value].name === "calendar") {
+    return tabs.value[selectedTab.value].note
+      .split("\n")
+      .map((note) => ({
+        note,
+      }))
+      .filter((element) => element.note);
+  }
+  return [];
+});
+
+const tasksElements = computed(() => {
   if (tabs.value[selectedTab.value].name === "tasks") {
     return tabs.value[selectedTab.value].note
       .split("\n")
@@ -587,6 +610,19 @@ const clickButtonInMenu = async (name) => {
     }
   }
 };
+const showTypeModal = ref(false);
+const selectedType = ref("");
+const showModalToChooseType = () => {
+  showTypeModal.value = true;
+};
+const selectType = (type) => {
+  const tabIndex = tabs.value.findIndex((tab) => tab.name === type.name);
+  selectTab(tabIndex);
+  selectedType.value = type;
+};
+
+// dodać pokazanie modala po rozpoznaniu notatki, obsłyga czasu i czyszczenia zaznaczonej kategorii
+// ogarnięcie logiki, zaznaczonej kategorii.
 
 const sendToWhisper = async (recording) => {
   if (!recording.blob) return;
@@ -599,7 +635,10 @@ const sendToWhisper = async (recording) => {
     body: formData,
   })
     .then((response) => response.text())
-    .then((data) => {
+    .then(async (data) => {
+      showModalToChooseType();
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      showTypeModal.value = false;
       const index = pendingRequests.value.indexOf(recording.name);
       if (index > -1) {
         pendingRequests.value.splice(index, 1);
@@ -732,7 +771,9 @@ const stopRecordingWithoutSave = () => {
 }
 .texarea-wrapper {
   color: white;
-  background: transparent;
+  background: sandybrown;
+  padding: 5px;
+  max-height: 200px;
   resize: none;
   width: 90%;
   outline: none;
