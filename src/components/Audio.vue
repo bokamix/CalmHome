@@ -266,7 +266,7 @@
       <button
         type="button"
         @click="() => (recording ? stopRecord() : startRecord())"
-        class="rounded-full inline-flex flex-col items-center justify-center p-4 group"
+        class="rounded-full inline-flex flex-col items-center justify-center p-10 group"
         :class="recording ? 'bg-red-600' : 'bg-blue-600'"
       >
         <svg
@@ -717,7 +717,7 @@ const sendToWhisper = async (recording) => {
     .then((response) => response.text())
     .then(async (data) => {
       showModalToChooseType();
-      await new Promise((resolve) => setTimeout(resolve, 5000));
+      await new Promise((resolve) => setTimeout(resolve, 10000));
       showTypeModal.value = false;
       const index = pendingRequests.value.indexOf(recording.name);
       const addToBoard = () => {
